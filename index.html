@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rental Agent Quiz Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --page:#EEF2F8;
+  --surface:#FFFFFF;
+  --text:#152238;
+  --muted:#56657E;
+  --line:#D3DBE8;
+  --ink:#0F2340;
+  --board:#16345F;
+  --grid:rgba(120,165,225,.16);
+  --brass:#E3B04B;
+  --brass-deep:#B8862A;
+  --tag-text:#3A2A08;
+  --good:#2F9A6A;
+  --bad:#D65744;
+  --focus:#4E9BFF;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --page:#0A1628;--surface:#13233D;--text:#E6ECF5;--muted:#9AAAC2;--line:#26395A;
+    --board:#122C52;--grid:rgba(120,165,225,.12);
+  }
+}
+:root[data-theme="dark"]{
+  --page:#0A1628;--surface:#13233D;--text:#E6ECF5;--muted:#9AAAC2;--line:#26395A;
+  --board:#122C52;--grid:rgba(120,165,225,.12);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--page);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.5;min-height:100vh}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+.wrap{max-width:1280px;margin:0 auto;padding:20px clamp(12px,3vw,32px) 40px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:18px}
+.title h1{font-family:var(--display);font-weight:800;font-size:clamp(2rem,4.5vw,3.1rem);line-height:1;margin:0;letter-spacing:.01em}
+.title p{margin:6px 0 0;color:var(--muted);font-size:.95rem}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--text);padding:9px 16px;border-radius:8px;font-weight:600;font-size:.92rem}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+:root[data-theme="dark"] .btn.primary{background:var(--brass);border-color:var(--brass);color:var(--tag-text)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.primary{background:var(--brass);border-color:var(--brass);color:var(--tag-text)}}
+.btn.ghost{background:transparent}
+
+/* Board: a key rack on blueprint paper */
+.board-shell{background-color:var(--board);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:28px 28px;border-radius:14px;padding:clamp(10px,2vw,22px);overflow-x:auto}
+.board{display:grid;grid-template-columns:repeat(var(--cols,5),minmax(118px,1fr));gap:clamp(8px,1.2vw,14px);min-width:calc(var(--cols,5) * 126px)}
+.plate{background:var(--ink);color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:12px 8px;min-height:74px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:var(--display);font-weight:700;font-size:clamp(1.05rem,1.7vw,1.4rem);line-height:1.1;letter-spacing:.02em}
+.tag{position:relative;border:0;background:var(--brass);color:var(--tag-text);border-radius:10px 10px 18px 18px;min-height:clamp(70px,9vw,96px);padding:22px 6px 10px;font-family:var(--display);font-weight:800;font-size:clamp(1.7rem,3.2vw,2.6rem);line-height:1;box-shadow:inset 0 -4px 0 var(--brass-deep);transition:transform .12s ease}
+.tag::before{content:"";position:absolute;top:9px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--board);box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
+.tag:hover{transform:translateY(-2px) rotate(-1.5deg)}
+.tag.used{background:transparent;box-shadow:none;border:2px dashed rgba(227,176,75,.35);color:rgba(227,176,75,.45);cursor:default;transform:none;font-size:1rem;font-family:var(--body);font-weight:600}
+.tag.used::before{background:rgba(227,176,75,.25);box-shadow:none}
+
+/* Teams */
+.teams{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.team{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.team.leader{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass)}
+.team-row{display:flex;align-items:center;gap:8px}
+.team input{flex:1;min-width:0;border:0;background:transparent;color:var(--text);font:600 1rem var(--body);padding:2px 0;border-bottom:1px solid transparent}
+.team input:hover,.team input:focus{border-bottom-color:var(--line);outline:none}
+.team .score{font-family:var(--display);font-weight:800;font-size:2.2rem;line-height:1}
+.team .score.neg{color:var(--bad)}
+.mini{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:6px;padding:2px 9px;font-size:.85rem;font-weight:600}
+.mini:hover{color:var(--text);border-color:var(--muted)}
+.add-team{border:2px dashed var(--line);background:transparent;color:var(--muted);border-radius:10px;min-height:96px;font-weight:600}
+.add-team:hover{color:var(--text);border-color:var(--muted)}
+.hint{color:var(--muted);font-size:.85rem;margin-top:14px}
+
+/* Overlays */
+.overlay{position:fixed;inset:0;background:rgba(6,14,28,.72);display:none;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px));z-index:10}
+.overlay.open{display:flex}
+.card{background:var(--surface);color:var(--text);border-radius:14px;width:min(860px,100%);max-height:100%;overflow-y:auto;padding:clamp(20px,4vw,40px);position:relative}
+.clue-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.clue-cat{font-family:var(--display);font-weight:700;font-size:1.3rem;color:var(--muted)}
+.clue-cat b{color:var(--brass-deep);font-weight:800}
+.clue-text{font-size:clamp(1.4rem,3.2vw,2.2rem);line-height:1.3;font-weight:600;margin:0 0 26px;max-width:36ch}
+.timer{display:flex;align-items:center;gap:10px}
+.timer-num{font-family:var(--display);font-weight:800;font-size:1.8rem;min-width:2ch;text-align:right}
+.timer-num.low{color:var(--bad)}
+.answer{border-top:1px solid var(--line);padding-top:20px;margin-top:6px;display:none}
+.answer.show{display:block;animation:rise .25s ease}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.answer-text{font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,3.6vw,2.4rem);line-height:1.1;margin:0 0 8px;color:var(--good)}
+.why{color:var(--muted);margin:0 0 20px;max-width:70ch}
+.award-title{font-weight:700;margin:0 0 8px}
+.award{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-bottom:20px}
+.award-row{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.award-row span{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.award-row button{border:0;border-radius:6px;padding:6px 10px;font-weight:700;color:#fff}
+.award-row .plus{background:var(--good)}
+.award-row .minus{background:var(--bad)}
+.award-row.done{opacity:.55}
+.card-foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.close-x{position:absolute;top:12px;right:14px;border:0;background:transparent;color:var(--muted);font-size:1.6rem;line-height:1;padding:4px 8px}
+
+/* Winner */
+.winner h2{font-family:var(--display);font-weight:800;font-size:clamp(2.2rem,6vw,3.6rem);line-height:1;margin:0 0 10px}
+.final-list{list-style:none;padding:0;margin:20px 0}
+.final-list li{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-weight:600}
+.final-list li b{font-family:var(--display);font-size:1.5rem}
+
+/* Editor */
+.editor .card{width:min(980px,100%)}
+.editor h2{font-family:var(--display);font-weight:800;font-size:2rem;margin:0 0 4px}
+.editor .sub{color:var(--muted);margin:0 0 18px}
+.cat-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.cat-tab{border:1px solid var(--line);background:transparent;color:var(--text);border-radius:999px;padding:6px 14px;font-weight:600;font-size:.9rem}
+.cat-tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+label{display:block;font-size:.85rem;font-weight:600;color:var(--muted);margin-bottom:4px}
+.field{width:100%;border:1px solid var(--line);background:var(--page);color:var(--text);border-radius:8px;padding:9px 11px;font:inherit;font-size:.95rem}
+textarea.field{resize:vertical;min-height:62px}
+.q-block{border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px;display:grid;grid-template-columns:90px 1fr;gap:10px 14px}
+.q-block .full{grid-column:1/-1}
+.q-block .two{grid-column:2}
+@media (max-width:620px){.q-block{grid-template-columns:1fr}.q-block .two{grid-column:1}}
+.editor-foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;margin-top:20px;position:sticky;bottom:-40px;background:var(--surface);padding:12px 0 4px}
+.editor-foot .grp{display:flex;flex-wrap:wrap;gap:8px}
+.code-box{margin-top:18px;display:none}
+.code-box.show{display:block}
+.code-box textarea{min-height:140px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem}
+.msg{font-size:.88rem;margin-top:6px;min-height:1.2em}
+.msg.err{color:var(--bad)}.msg.ok{color:var(--good)}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="title">
+      <h1 id="gameTitle">Rental Agent Quiz Board</h1>
+      <p>A Jeopardy-style game for new rental agents. Pick a key, read the clue, and award points.</p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="editBtn">Edit questions</button>
+      <button class="btn" id="themeBtn" aria-label="Switch light or dark theme">Switch theme</button>
+      <button class="btn primary" id="newBtn">New game</button>
+    </div>
+  </header>
+
+  <div class="board-shell"><div class="board" id="board"></div></div>
+
+  <section class="teams" id="teams" aria-label="Teams and scores"></section>
+  <p class="hint">Tip: click a team name to rename it. Use the small buttons on each team to fix scores by hand.</p>
+</div>
+
+<!-- Clue -->
+<div class="overlay" id="clueOv" role="dialog" aria-modal="true" aria-labelledby="clueText">
+  <div class="card">
+    <button class="close-x" id="clueClose" aria-label="Close without using this clue">×</button>
+    <div class="clue-meta">
+      <div class="clue-cat" id="clueCat"></div>
+      <div class="timer">
+        <span class="timer-num" id="timerNum">30</span>
+        <button class="btn" id="timerBtn">Start timer</button>
+      </div>
+    </div>
+    <p class="clue-text" id="clueText"></p>
+    <div class="card-foot" id="revealFoot">
+      <button class="btn primary" id="revealBtn">Show answer</button>
+    </div>
+    <div class="answer" id="answerBox">
+      <p class="answer-text" id="answerText"></p>
+      <p class="why" id="whyText"></p>
+      <p class="award-title">Who answered?</p>
+      <div class="award" id="award"></div>
+      <div class="card-foot">
+        <button class="btn primary" id="doneBtn">Back to board</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Winner -->
+<div class="overlay" id="winOv" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+  <div class="card winner">
+    <h2 id="winTitle"></h2>
+    <p class="why" id="winSub"></p>
+    <ul class="final-list" id="finalList"></ul>
+    <div class="card-foot">
+      <button class="btn" id="winClose">View board</button>
+      <button class="btn primary" id="winNew">Play again</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm -->
+<div class="overlay" id="askOv" role="alertdialog" aria-modal="true" aria-labelledby="askText" style="z-index:20">
+  <div class="card" style="width:min(460px,100%)">
+    <p class="award-title" id="askText" style="font-size:1.1rem;margin-bottom:20px"></p>
+    <div class="card-foot">
+      <button class="btn" id="askNo">Cancel</button>
+      <button class="btn primary" id="askYes">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- Editor -->
+<div class="overlay editor" id="editOv" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+  <div class="card">
+    <button class="close-x" id="editClose" aria-label="Close editor without saving">×</button>
+    <h2 id="editTitle">Edit questions</h2>
+    <p class="sub">Changes are saved in this browser. To move your game to another computer, copy the game code and load it there.</p>
+    <label for="titleField">Game title</label>
+    <input class="field" id="titleField" style="margin-bottom:16px">
+    <div class="cat-tabs" id="catTabs"></div>
+    <div id="catForm"></div>
+    <div class="code-box" id="codeBox">
+      <label for="codeField">Game code</label>
+      <textarea class="field" id="codeField" spellcheck="false"></textarea>
+      <div class="grp" style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn" id="copyCode">Copy code</button>
+        <button class="btn" id="loadCode">Load this code</button>
+      </div>
+      <div class="msg" id="codeMsg"></div>
+    </div>
+    <div class="editor-foot">
+      <div class="grp">
+        <button class="btn ghost" id="codeToggle">Game code</button>
+        <button class="btn ghost" id="resetSample">Restore sample questions</button>
+      </div>
+      <div class="grp">
+        <button class="btn" id="editCancel">Cancel</button>
+        <button class="btn primary" id="editSave">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SAMPLE = {
+  title: "Rental Agent Quiz Board",
+  categories: [
+    { title: "Rental lingo", clues: [
+      { value:100, clue:"Money the tenant pays before moving in, held by the landlord to cover damage or unpaid bills.", answer:"Security deposit", why:"It is returned at move-out, minus any fair deductions." },
+      { value:200, clue:"A unit that comes with furniture and appliances, ready to move in.", answer:"Fully furnished", why:"Most Bangkok condo rentals are fully furnished. Unfurnished units suit long-stay tenants with their own furniture." },
+      { value:300, clue:"A list of every item in the unit and its condition, signed by both sides at move-in.", answer:"Inventory list (check-in report)", why:"Photos plus signatures are your best protection when the deposit is returned." },
+      { value:400, clue:"The lease clause that lets an expat tenant leave early if their employer transfers them out of Thailand.", answer:"Diplomatic clause", why:"It usually applies only after a minimum stay and needs written notice, often with proof of the transfer." },
+      { value:500, clue:"When a lease ends but the tenant stays and keeps paying monthly without signing a new contract.", answer:"Month-to-month (holdover) tenancy", why:"It's risky for both sides because the terms are unclear. Always renew or extend in writing." }
+    ]},
+    { title: "Leases and contracts", clues: [
+      { value:100, clue:"The most common lease length for condo rentals in Bangkok.", answer:"1 year (12 months)", why:"Six-month leases exist but usually cost more per month or pay a lower commission." },
+      { value:200, clue:"What usually happens to the deposit if a tenant breaks a 1-year lease early with no special clause.", answer:"The tenant loses (forfeits) the deposit", why:"Explain this clearly before signing, so there are no surprises later." },
+      { value:300, clue:"Two documents to see from a landlord before listing their unit.", answer:"The condo title deed (Or Chor 2) and the owner's ID card or passport", why:"This confirms the person really owns the unit and protects your tenants from rental scams." },
+      { value:400, clue:"Condo rentals shorter than this many days can break the Hotel Act and most building rules.", answer:"30 days", why:"Daily or weekly rentals need a hotel license. Many buildings fine owners who rent short-term." },
+      { value:500, clue:"Leases longer than this must be registered at the Land Office to be fully enforceable.", answer:"3 years", why:"An unregistered longer lease can only be enforced for 3 years. Suggest a lawyer for long leases." }
+    ]},
+    { title: "Money and move-in", clues: [
+      { value:100, clue:"The typical agent commission for a 1-year lease, usually paid by the landlord.", answer:"One month's rent", why:"Always check your company's policy and agree on it with the landlord in writing." },
+      { value:200, clue:"Rent is ฿20,000 a month. The tenant pays 2 months' deposit plus 1 month in advance. The total due at move-in.", answer:"฿60,000", why:"฿40,000 deposit + ฿20,000 first month's rent." },
+      { value:300, clue:"Your commission on a 6-month lease at ฿30,000 a month, when the rate is half a month's rent.", answer:"฿15,000", why:"Half of ฿30,000. Shorter leases usually pay a smaller commission." },
+      { value:400, clue:"A tenant moves in on the 21st of a 30-day month. Rent is ฿24,000. The prorated rent for that first month.", answer:"฿8,000", why:"฿24,000 ÷ 30 = ฿800 per day. The 21st to the 30th is 10 days, so ฿800 × 10." },
+      { value:500, clue:"Rent is ฿25,000 with a 2-month deposit. At move-out: ฿3,500 cleaning, ฿6,000 for a broken TV, and a ฿2,300 unpaid electricity bill. The amount returned.", answer:"฿38,200", why:"฿50,000 − ฿11,800 in deductions. Each deduction should have a receipt or photo evidence." }
+    ]},
+    { title: "Buildings and foreign tenants", clues: [
+      { value:100, clue:"The main document you need from a foreign tenant to prepare the lease.", answer:"Passport", why:"A copy of the photo page, and often the visa page, is attached to the lease." },
+      { value:200, clue:"The office in a condo building that issues key cards and keeps tenant records.", answer:"Juristic office (building management)", why:"Many buildings ask for a copy of the lease and the tenant's ID before handing over key cards." },
+      { value:300, clue:"In a Bangkok condo, electricity is usually billed by this state agency at the government rate.", answer:"MEA (Metropolitan Electricity Authority)", why:"Apartments often charge more per unit, so mention this when a tenant compares costs." },
+      { value:400, clue:"Before you tell a tenant they can bring their dog, check these two things.", answer:"The building's pet rules and the landlord's permission", why:"Many condos ban pets entirely, even if the landlord agrees. Always check with the juristic office." },
+      { value:500, clue:"The form the landlord must file with Immigration within 24 hours of a foreign tenant moving in.", answer:"TM30", why:"The landlord is responsible and can be fined for late filing. Tenants often need the receipt for visa extensions." }
+    ]},
+    { title: "Tenants and landlords", clues: [
+      { value:100, clue:"The first thing to do when a new rental lead messages you.", answer:"Reply fast, ideally within minutes", why:"Tenants often message several agents at once. The first helpful reply usually wins." },
+      { value:200, clue:"Four things to ask a tenant before sending listings.", answer:"Budget, preferred area or commute, move-in date, and lease length", why:"Also ask about pets and bedrooms. Good questions save everyone time." },
+      { value:300, clue:"What you do with the tenant on move-in day, before handing over the keys.", answer:"A check-in walkthrough, matching photos to the inventory list", why:"Record every scratch, stain, and missing item, and have both sides sign." },
+      { value:400, clue:"The aircon stops working in month 3 from normal use. Who usually pays, and what is your role?", answer:"The landlord usually pays, and you coordinate the repair quickly", why:"Tenants usually pay for damage they cause and routine cleaning if the lease says so. Check the lease." },
+      { value:500, clue:"A landlord wants to keep part of the deposit for faded paint and small nail holes. Your reply.", answer:"Explain that normal wear and tear isn't damage, and deductions need evidence", why:"Compare against the check-in photos and inventory list. Being fair keeps both landlord and tenant coming back." }
+    ]}
+  ]
+};
+
+const KEY = "rental-qb-v1";
+const clone = o => JSON.parse(JSON.stringify(o));
+let state = { game: clone(SAMPLE), teams: [{name:"Team 1",score:0},{name:"Team 2",score:0},{name:"Team 3",score:0}], used: [], theme: null };
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){ const s = JSON.parse(raw); if(s && valid(s.game)) state = Object.assign(state, s); }
+  }catch(e){}
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function valid(g){
+  return g && Array.isArray(g.categories) && g.categories.length >= 1 &&
+    g.categories.every(c => typeof c.title === "string" && Array.isArray(c.clues) && c.clues.length >= 1 &&
+      c.clues.every(q => typeof q.clue === "string" && typeof q.answer === "string"));
+}
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const idOf = (ci,qi) => ci + "-" + qi;
+
+/* ---------- In-page confirm dialog (native browser popups are blocked in hosted pages) ---------- */
+function ask(message, yesLabel){
+  return new Promise(resolve => {
+    const ov=$("askOv"), prev=document.activeElement;
+    $("askText").textContent = message;
+    $("askYes").textContent = yesLabel || "Continue";
+    ov.classList.add("open"); $("askYes").focus();
+    const done = v => { ov.classList.remove("open"); $("askYes").onclick=$("askNo").onclick=null; ov.onkeydown=null; if(prev&&prev.focus) prev.focus(); resolve(v); };
+    $("askYes").onclick = () => done(true);
+    $("askNo").onclick = () => done(false);
+    ov.onkeydown = e => { if(e.key==="Escape"){ e.stopPropagation(); done(false); } };
+  });
+}
+
+/* ---------- Board ---------- */
+function renderBoard(){
+  const g = state.game, board = $("board");
+  $("gameTitle").textContent = g.title || "Rental Agent Quiz Board";
+  document.title = g.title || "Rental Agent Quiz Board";
+  const cols = g.categories.length;
+  const rows = Math.max(...g.categories.map(c => c.clues.length));
+  board.style.setProperty("--cols", cols);
+  let html = g.categories.map(c => `<div class="plate">${esc(c.title)}</div>`).join("");
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const q = g.categories[c].clues[r];
+      if(!q){ html += `<div></div>`; continue; }
+      const used = state.used.includes(idOf(c,r));
+      html += used
+        ? `<button class="tag used" disabled aria-label="${esc(g.categories[c].title)} ${q.value}, already played">Played</button>`
+        : `<button class="tag" data-c="${c}" data-r="${r}" aria-label="${esc(g.categories[c].title)} for ${q.value}">${q.value}</button>`;
+    }
+  }
+  board.innerHTML = html;
+}
+$("board").addEventListener("click", e => {
+  const t = e.target.closest(".tag:not(.used)");
+  if(t) openClue(+t.dataset.c, +t.dataset.r);
+});
+
+/* ---------- Teams ---------- */
+function renderTeams(){
+  const max = Math.max(...state.teams.map(t => t.score));
+  const anyScore = state.teams.some(t => t.score !== 0);
+  $("teams").innerHTML = state.teams.map((t,i) => `
+    <div class="team ${anyScore && t.score===max ? "leader":""}">
+      <div class="team-row">
+        <input value="${esc(t.name)}" data-i="${i}" aria-label="Team name">
+        ${state.teams.length>1 ? `<button class="mini" data-rm="${i}" aria-label="Remove ${esc(t.name)}">Remove</button>`:""}
+      </div>
+      <div class="team-row">
+        <span class="score ${t.score<0?"neg":""}">${t.score}</span>
+        <span style="flex:1"></span>
+        <button class="mini" data-adj="${i}" data-v="-100" aria-label="Subtract 100 from ${esc(t.name)}">−100</button>
+        <button class="mini" data-adj="${i}" data-v="100" aria-label="Add 100 to ${esc(t.name)}">+100</button>
+      </div>
+    </div>`).join("") +
+    (state.teams.length < 8 ? `<button class="add-team" id="addTeam">Add team</button>` : "");
+}
+$("teams").addEventListener("input", e => {
+  if(e.target.matches("input[data-i]")){ state.teams[+e.target.dataset.i].name = e.target.value; save(); }
+});
+$("teams").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.id === "addTeam"){ state.teams.push({name:"Team " + (state.teams.length+1), score:0}); }
+  else if(b.dataset.rm){ state.teams.splice(+b.dataset.rm,1); }
+  else if(b.dataset.adj){ state.teams[+b.dataset.adj].score += +b.dataset.v; }
+  else return;
+  save(); renderTeams();
+});
+
+/* ---------- Clue ---------- */
+let current = null, timer = null, timeLeft = 30, lastFocus = null;
+function openClue(c,r){
+  const cat = state.game.categories[c], q = cat.clues[r];
+  current = {c,r,q,revealed:false};
+  lastFocus = document.activeElement;
+  $("clueCat").innerHTML = `${esc(cat.title)} for <b>${q.value}</b>`;
+  $("clueText").textContent = q.clue;
+  $("answerText").textContent = q.answer;
+  $("whyText").textContent = q.why || "";
+  $("whyText").style.display = q.why ? "" : "none";
+  $("answerBox").classList.remove("show");
+  $("revealFoot").style.display = "";
+  resetTimer();
+  $("award").innerHTML = state.teams.map((t,i) => `
+    <div class="award-row" data-row="${i}">
+      <span>${esc(t.name)}</span>
+      <button class="plus" data-i="${i}" data-s="1" aria-label="${esc(t.name)} was right, add ${q.value}">+${q.value}</button>
+      <button class="minus" data-i="${i}" data-s="-1" aria-label="${esc(t.name)} was wrong, subtract ${q.value}">−${q.value}</button>
+    </div>`).join("");
+  $("clueOv").classList.add("open");
+  $("revealBtn").focus();
+}
+function reveal(){
+  if(!current || current.revealed) return;
+  current.revealed = true;
+  stopTimer();
+  $("revealFoot").style.display = "none";
+  $("answerBox").classList.add("show");
+  $("doneBtn").focus();
+}
+function closeClue(markUsed){
+  stopTimer();
+  if(current && markUsed){
+    const id = idOf(current.c,current.r);
+    if(!state.used.includes(id)) state.used.push(id);
+    save();
+  }
+  current = null;
+  $("clueOv").classList.remove("open");
+  renderBoard(); renderTeams();
+  if(lastFocus && document.body.contains(lastFocus)) lastFocus.focus();
+  checkEnd();
+}
+$("revealBtn").onclick = reveal;
+$("doneBtn").onclick = () => closeClue(true);
+$("clueClose").onclick = () => closeClue(current && current.revealed);
+$("award").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b || !current) return;
+  const i = +b.dataset.i;
+  state.teams[i].score += current.q.value * +b.dataset.s;
+  const row = $("award").querySelector(`[data-row="${i}"]`);
+  row.classList.add("done");
+  row.querySelectorAll("button").forEach(x => x.disabled = true);
+  save(); renderTeams();
+});
+
+function resetTimer(){ stopTimer(); timeLeft = 30; paintTimer(); $("timerBtn").textContent = "Start timer"; }
+function paintTimer(){ const n=$("timerNum"); n.textContent = timeLeft; n.classList.toggle("low", timeLeft<=5); }
+function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } }
+$("timerBtn").onclick = () => {
+  if(timer){ stopTimer(); $("timerBtn").textContent = "Resume timer"; return; }
+  if(timeLeft<=0) timeLeft = 30;
+  $("timerBtn").textContent = "Pause timer";
+  timer = setInterval(() => {
+    timeLeft--; paintTimer();
+    if(timeLeft<=0){ stopTimer(); $("timerBtn").textContent = "Restart timer"; }
+  },1000);
+};
+
+/* ---------- End of game ---------- */
+function totalClues(){ return state.game.categories.reduce((n,c)=>n+c.clues.length,0); }
+function checkEnd(){ if(state.used.length >= totalClues()) showWinner(); }
+function showWinner(){
+  const sorted = [...state.teams].sort((a,b)=>b.score-a.score);
+  const top = sorted[0].score;
+  const winners = sorted.filter(t=>t.score===top);
+  $("winTitle").textContent = winners.length>1 ? "It's a tie!" : `${winners[0].name} wins!`;
+  $("winSub").textContent = winners.length>1 ? `${winners.map(w=>w.name).join(" and ")} finished with ${top} points each.` : `Final score: ${top} points. Great work, everyone.`;
+  $("finalList").innerHTML = sorted.map(t=>`<li><span>${esc(t.name)}</span><b>${t.score}</b></li>`).join("");
+  $("winOv").classList.add("open");
+  $("winNew").focus();
+}
+$("winClose").onclick = () => $("winOv").classList.remove("open");
+$("winNew").onclick = () => { $("winOv").classList.remove("open"); newGame(); };
+
+function newGame(){
+  state.used = [];
+  state.teams.forEach(t=>t.score=0);
+  save(); renderBoard(); renderTeams();
+}
+$("newBtn").onclick = async () => {
+  if(state.used.length===0 && state.teams.every(t=>t.score===0)){ newGame(); return; }
+  if(await ask("Start a new game? Scores will reset and all clues will come back.", "Start new game")) newGame();
+};
+
+/* ---------- Theme ---------- */
+function applyTheme(){ if(state.theme) document.documentElement.setAttribute("data-theme", state.theme); else document.documentElement.removeAttribute("data-theme"); }
+$("themeBtn").onclick = () => {
+  const dark = state.theme ? state.theme==="dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  state.theme = dark ? "light" : "dark"; applyTheme(); save();
+};
+
+/* ---------- Editor ---------- */
+let draft = null, activeCat = 0;
+function openEditor(){
+  draft = clone(state.game); activeCat = 0;
+  $("titleField").value = draft.title || "";
+  $("codeBox").classList.remove("show");
+  renderEditor();
+  $("editOv").classList.add("open");
+  $("titleField").focus();
+}
+function renderEditor(){
+  $("catTabs").innerHTML = draft.categories.map((c,i)=>`<button class="cat-tab ${i===activeCat?"on":""}" data-t="${i}">${esc(c.title||"Untitled")}</button>`).join("") +
+    (draft.categories.length<6 ? `<button class="cat-tab" data-add="1">Add category</button>` : "");
+  const c = draft.categories[activeCat];
+  $("catForm").innerHTML = `
+    <label for="catTitle">Category name</label>
+    <div style="display:flex;gap:8px">
+      <input class="field" id="catTitle" value="${esc(c.title)}">
+      ${draft.categories.length>2 ? `<button class="btn" id="rmCat">Remove category</button>`:""}
+    </div>
+    ${c.clues.map((q,i)=>`
+      <div class="q-block">
+        <div><label for="v${i}">Points</label><input class="field" id="v${i}" type="number" step="100" min="0" data-q="${i}" data-f="value" value="${q.value}"></div>
+        <div><label for="c${i}">Clue</label><textarea class="field" id="c${i}" data-q="${i}" data-f="clue">${esc(q.clue)}</textarea></div>
+        <div class="two"><label for="a${i}">Answer</label><input class="field" id="a${i}" data-q="${i}" data-f="answer" value="${esc(q.answer)}"></div>
+        <div class="two"><label for="w${i}">Teaching note (optional)</label><textarea class="field" id="w${i}" data-q="${i}" data-f="why">${esc(q.why||"")}</textarea></div>
+      </div>`).join("")}`;
+}
+$("catTabs").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.add){
+    draft.categories.push({title:"New category",clues:[100,200,300,400,500].map(v=>({value:v,clue:"",answer:"",why:""}))});
+    activeCat = draft.categories.length-1;
+  } else activeCat = +b.dataset.t;
+  renderEditor();
+});
+$("catForm").addEventListener("input", e => {
+  const c = draft.categories[activeCat];
+  if(e.target.id==="catTitle"){ c.title = e.target.value; const tab=$("catTabs").children[activeCat]; if(tab) tab.textContent = e.target.value || "Untitled"; return; }
+  const q = e.target.dataset.q; if(q===undefined) return;
+  const f = e.target.dataset.f;
+  c.clues[+q][f] = f==="value" ? (parseInt(e.target.value,10)||0) : e.target.value;
+});
+$("catForm").addEventListener("click", async e => {
+  if(e.target.id!=="rmCat") return;
+  if(await ask(`Remove the "${draft.categories[activeCat].title}" category and its questions?`, "Remove category")){
+    draft.categories.splice(activeCat,1); activeCat = Math.max(0,activeCat-1); renderEditor();
+  }
+});
+$("titleField").addEventListener("input", e => draft.title = e.target.value);
+function closeEditor(){ $("editOv").classList.remove("open"); $("editBtn").focus(); }
+$("editBtn").onclick = openEditor;
+$("editClose").onclick = closeEditor;
+$("editCancel").onclick = closeEditor;
+$("editSave").onclick = () => {
+  const changed = JSON.stringify(draft.categories.map(c=>c.clues.length)) !== JSON.stringify(state.game.categories.map(c=>c.clues.length)) || draft.categories.length!==state.game.categories.length;
+  state.game = clone(draft);
+  if(changed) state.used = [];
+  save(); renderBoard(); renderTeams(); closeEditor();
+};
+$("resetSample").onclick = async () => {
+  if(!(await ask("Replace all your questions with the sample rental questions?", "Restore samples"))) return;
+  draft = clone(SAMPLE); activeCat = 0; $("titleField").value = draft.title; renderEditor();
+};
+$("codeToggle").onclick = () => {
+  const box = $("codeBox"); box.classList.toggle("show");
+  if(box.classList.contains("show")){ $("codeField").value = JSON.stringify(draft); $("codeMsg").textContent=""; }
+};
+$("copyCode").onclick = async () => {
+  const f=$("codeField"), m=$("codeMsg");
+  try{ await navigator.clipboard.writeText(f.value); m.className="msg ok"; m.textContent="Copied. Paste it into a note or email to keep it."; }
+  catch(e){ f.select(); m.className="msg"; m.textContent="Select the code above and copy it with Ctrl+C or Cmd+C."; }
+};
+$("loadCode").onclick = () => {
+  const m=$("codeMsg");
+  try{
+    const g = JSON.parse($("codeField").value);
+    if(!valid(g)) throw new Error();
+    g.categories.forEach(c=>c.clues.forEach((q,i)=>{ q.value = parseInt(q.value,10) || (i+1)*100; q.why = q.why||""; }));
+    draft = g; activeCat = 0; $("titleField").value = g.title||""; renderEditor();
+    m.className="msg ok"; m.textContent="Loaded. Select Save changes to use it.";
+  }catch(e){ m.className="msg err"; m.textContent="This code can't be read. Copy the full code again and paste it here."; }
+};
+
+/* ---------- Keyboard ---------- */
+document.addEventListener("keydown", e => {
+  if(e.key==="Escape"){
+    if($("askOv").classList.contains("open")) return;
+    if($("editOv").classList.contains("open")) closeEditor();
+    else if($("clueOv").classList.contains("open")) closeClue(current && current.revealed);
+    else if($("winOv").classList.contains("open")) $("winOv").classList.remove("open");
+  }
+});
+
+load(); applyTheme(); renderBoard(); renderTeams();
+</script>
+</body>
+</html>
